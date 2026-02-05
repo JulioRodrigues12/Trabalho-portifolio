@@ -23,10 +23,10 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: Verificar existência do index.html na raiz
+      - name: Verificar existência do index.html
         run: |
           if [ ! -f index.html ]; then
-            echo "ERRO: index.html não encontrado na raiz do projeto."
+            echo "❌ ERRO: index.html não encontrado na raiz do projeto."
             exit 1
           fi
 
@@ -38,14 +38,18 @@ jobs:
 
       - name: Verificar arquivos maiores que 500KB
         run: |
-          if find . -type f -size +500k | grep .; then
-            echo "ERRO: Existem arquivos maiores que 500KB."
+          if find . -type f -size +500k \
+            ! -path "./.git/*" \
+            ! -path "./.github/*" | grep .; then
+            echo "❌ ERRO: Existem arquivos maiores que 500KB."
             exit 1
           fi
 
       - name: Bloquear termos proibidos
         run: |
-          if grep -RInE "TODO|FIXME|senha|password" .; then
-            echo "ERRO: Termos proibidos encontrados."
+          if grep -RInE "TODO|FIXME|senha|password" . \
+            --exclude-dir=.git \
+            --exclude-dir=.github; then
+            echo "❌ ERRO: Termos proibidos encontrados no código."
             exit 1
           fi
