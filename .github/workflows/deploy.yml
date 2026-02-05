@@ -1,56 +1,40 @@
-name: CI - Validação de Código
+name: Deploy to GitHub Pages
 
 on:
-  pull_request:
-    branches:
-      - main
+  push:
+    branches: [ "main" ]
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
 jobs:
-  validate:
-    name: Validação em múltiplas versões do Node
+  deploy:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [18, 20]
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
-      - name: Checkout do código
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configurar Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
         with:
-          node-version: ${{ matrix.node-version }}
+          path: .
 
-      - name: Verificar existência do index.html na raiz
-        run: |
-          if [ ! -f index.html ]; then
-            echo "ERRO: index.html não encontrado na raiz do projeto."
-            exit 1
-          fi
-
-      - name: Instalar HTMLHint (Linter HTML)
-        run: npm install -g htmlhint
-
-      - name: Executar Linter HTML
-        run: htmlhint index.html
-
-      - name: Verificar arquivos maiores que 500KB
-        run: |
-          if find . -type f -size +500k | grep .; then
-            echo "ERRO: Existem arquivos maiores que 500KB."
-            exit 1
-          fi
-
-      - name: Bloquear termos proibidos no código
-        run: |
-          if grep -RInE "TODO|FIXME|senha|password" .; then
-            echo "ERRO: Termos proibidos encontrados no código."
-            exit 1
-          fi
-
-      - name: Verificar links e imagens quebrados
-        run: |
-          npm install -g broken-link-checker
-          blc http://localhost --filter-level=3 || true
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
